@@ -1,0 +1,11 @@
+.venv/
+.venv-py311-backup/
+.tools/
+.test-artifacts/
+__pycache__/
+*.py[cod]
+.env
+.pytest_cache/
+.ruff_cache/
+data/jobs/*
+!data/jobs/.gitkeep
