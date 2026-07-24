@@ -1,0 +1,9 @@
+services:
+  yanmu:
+    build:
+      context: .
+      dockerfile: Dockerfile.gpu
+    gpus: all
+    environment:
+      ACCELERATION_MODE: cuda
+

@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="自动识别视频语种，生成简体中文或中外双语字幕。" />
+    <title>言幕 · 视频字幕生成器</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="noise" aria-hidden="true"></div>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="言幕首页">
+        <span class="brand-mark" aria-hidden="true">言</span>
+        <span class="brand-copy"><strong>言幕</strong><small>YANMU STUDIO</small></span>
+      </a>
+      <div class="service-status" id="serviceStatus">
+        <span class="status-dot"></span>
+        <span>正在检查服务</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <span class="eyebrow">AI VIDEO CAPTIONING · 本地工作台</span>
+          <h1>让每一句话，<br /><em>都有准确的字幕。</em></h1>
+          <p>
+            自动识别视频语言。中文视频生成简体中文字幕，外语视频生成原文在上、简体中文在下的双语字幕。
+          </p>
+        </div>
+        <div class="rule-card" aria-label="字幕生成规则">
+          <div class="rule-index">识别规则 / 01</div>
+          <div class="rule-row">
+            <span class="language-chip zh">中</span>
+            <div><strong>检测到中文</strong><small>输出单行简体中文字幕</small></div>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+          </div>
+          <div class="rule-divider"></div>
+          <div class="rule-row">
+            <span class="language-chip en">A</span>
+            <div><strong>检测到外语</strong><small>上方原文 + 下方简体中文</small></div>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+          </div>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <div class="upload-card">
+          <div class="section-heading">
+            <div>
+              <span class="step-label">STEP 01</span>
+              <h2>添加视频</h2>
+            </div>
+            <span class="format-note">MP4 · MOV · MKV · AVI · WEBM</span>
+          </div>
+
+          <input
+            id="fileInput"
+            type="file"
+            hidden
+            accept="video/mp4,video/quicktime,video/x-matroska,video/x-msvideo,video/webm,video/mpeg,.m4v,.ts"
+          />
+          <button class="dropzone" id="dropzone" type="button">
+            <span class="upload-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" />
+              </svg>
+            </span>
+            <span class="drop-title">拖放视频到这里</span>
+            <span class="drop-subtitle">或点击选择本地文件 · 单个文件最大 4GB</span>
+          </button>
+
+          <div class="selected-file" id="selectedFile" hidden>
+            <div class="file-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="m10 9 5 3-5 3V9Z" />
+              </svg>
+            </div>
+            <div class="file-copy"><strong id="fileName"></strong><small id="fileMeta"></small></div>
+            <button class="icon-button" id="clearFile" type="button" aria-label="移除文件">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+            </button>
+          </div>
+
+          <div class="options-row">
+            <label class="field">
+              <span>识别精度</span>
+              <select id="modelSize">
+                <option value="tiny">极速 · Tiny</option>
+                <option value="base">快速 · Base</option>
+                <option value="small" selected>均衡 · Small</option>
+                <option value="medium">精确 · Medium</option>
+                <option value="large-v3">最佳 · Large v3</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>硬件加速</span>
+              <select id="acceleration">
+                <option value="auto" selected>自动检测 · 推荐</option>
+                <option value="cuda" id="cudaOption">NVIDIA CUDA</option>
+                <option value="cpu">仅使用 CPU</option>
+              </select>
+            </label>
+            <label class="toggle-field">
+              <span><strong>压制到视频</strong><small>额外导出带硬字幕 MP4</small></span>
+              <input id="burnSubtitles" type="checkbox" />
+              <i aria-hidden="true"></i>
+            </label>
+          </div>
+
+          <div class="action-row">
+            <button class="primary-button" id="startButton" type="button" disabled>
+              <span>开始生成字幕</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5" /></svg>
+            </button>
+            <p><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" /><path d="M12 16v-4m0-4h.01" /></svg>首次运行会自动下载所选语音模型</p>
+          </div>
+
+          <div class="upload-progress" id="uploadProgress" hidden>
+            <div><span id="uploadLabel">正在上传</span><strong id="uploadPercent">0%</strong></div>
+            <div class="progress-track"><i id="uploadBar"></i></div>
+          </div>
+        </div>
+
+        <aside class="jobs-card">
+          <div class="section-heading compact">
+            <div>
+              <span class="step-label">QUEUE</span>
+              <h2>处理任务</h2>
+            </div>
+            <button class="refresh-button" id="refreshButton" type="button" aria-label="刷新任务">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5M4 18v-5h5" /><path d="M6.1 9a7 7 0 0 1 11.5-2.6L20 9M4 15l2.4 2.6A7 7 0 0 0 17.9 15" /></svg>
+            </button>
+          </div>
+          <div class="jobs-list" id="jobsList">
+            <div class="empty-state">
+              <span>空</span>
+              <strong>还没有处理任务</strong>
+              <small>上传视频后，进度会显示在这里</small>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="result-panel" id="resultPanel" hidden>
+        <div class="result-header">
+          <div>
+            <span class="step-label">OUTPUT</span>
+            <h2>字幕已就绪</h2>
+          </div>
+          <button class="icon-button" id="closeResult" type="button" aria-label="关闭结果">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+          </button>
+        </div>
+        <div class="result-grid">
+          <div class="video-frame">
+            <video id="resultVideo" controls preload="metadata"></video>
+          </div>
+          <div class="result-info">
+            <div class="result-badge" id="resultBadge">中文 · 单语字幕</div>
+            <h3 id="resultTitle"></h3>
+            <p id="resultDescription"></p>
+            <div class="download-actions">
+              <a class="primary-button" id="subtitleDownload" href="#" download>
+                下载 SRT 字幕
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" /></svg>
+              </a>
+              <a class="secondary-button" id="videoDownload" href="#" download hidden>下载带字幕视频</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="feature-strip">
+        <div><span>01</span><strong>语种自动判断</strong><small>无需手动选择语言</small></div>
+        <div><span>02</span><strong>GPU 自动加速</strong><small>CUDA 识别与硬件编码</small></div>
+        <div><span>03</span><strong>字幕与成片导出</strong><small>SRT 文件或硬字幕 MP4</small></div>
+      </section>
+    </main>
+
+    <footer><span>言幕 YANMU</span><p>让跨语言视频更容易被看见。</p><small>v0.1 · Local-first caption studio</small></footer>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>
