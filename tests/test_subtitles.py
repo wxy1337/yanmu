@@ -8,6 +8,7 @@ from app.subtitles import (
     is_chinese_language,
     render_ass,
     render_srt,
+    subtitle_display_end,
     write_subtitles,
 )
 
@@ -27,6 +28,20 @@ class SubtitleTests(unittest.TestCase):
 
     def test_srt_timestamp_rounding(self) -> None:
         self.assertEqual(format_srt_time(3661.234), "01:01:01,234")
+
+    def test_subtitle_display_is_capped_during_long_silence(self) -> None:
+        segment = SubtitleSegment(10.0, 42.0, "Long silence follows")
+        self.assertEqual(subtitle_display_end(segment), 15.0)
+        result = render_srt([segment], bilingual=False)
+        self.assertIn("00:00:10,000 --> 00:00:15,000", result)
+
+    def test_subtitle_display_keeps_short_segments_visible(self) -> None:
+        segment = SubtitleSegment(3.0, 3.05, "Short")
+        self.assertEqual(subtitle_display_end(segment), 3.2)
+
+    def test_ass_timestamp_uses_capped_display_end(self) -> None:
+        result = render_ass([SubtitleSegment(1.0, 20.0, "Hello")], bilingual=False)
+        self.assertIn("Dialogue: 0,0:00:01.00,0:00:06.00", result)
 
     def test_bilingual_srt_has_two_lines(self) -> None:
         result = render_srt(self.segments, bilingual=True)

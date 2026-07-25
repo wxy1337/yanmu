@@ -4,6 +4,9 @@ from pathlib import Path
 
 from .models import SubtitleSegment
 
+MAX_SUBTITLE_DISPLAY_SECONDS = 5.0
+MIN_SUBTITLE_DISPLAY_SECONDS = 0.2
+
 
 def is_chinese_language(language: str | None) -> bool:
     if not language:
@@ -20,10 +23,16 @@ def format_srt_time(seconds: float) -> str:
     return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
 
 
+def subtitle_display_end(segment: SubtitleSegment) -> float:
+    minimum_end = segment.start + MIN_SUBTITLE_DISPLAY_SECONDS
+    maximum_end = segment.start + MAX_SUBTITLE_DISPLAY_SECONDS
+    return min(max(segment.end, minimum_end), maximum_end)
+
+
 def render_srt(segments: list[SubtitleSegment], bilingual: bool) -> str:
     blocks: list[str] = []
     for index, segment in enumerate(segments, start=1):
-        end = max(segment.end, segment.start + 0.2)
+        end = subtitle_display_end(segment)
         lines = [segment.text.strip()]
         if bilingual and segment.translation:
             lines.append(segment.translation.strip())
@@ -73,7 +82,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
     events: list[str] = []
     for segment in segments:
-        end = max(segment.end, segment.start + 0.2)
+        end = subtitle_display_end(segment)
         text = _escape_ass(segment.text)
         style = "Default"
         if bilingual and segment.translation:
