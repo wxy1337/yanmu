@@ -1,4 +1,6 @@
 .venv/
+.venv.old/
+.venv-backup-*/
 .venv-py311-backup/
 .tools/
 .test-artifacts/
