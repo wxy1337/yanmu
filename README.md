@@ -49,3 +49,15 @@ app/
 ```
 
 任务文件默认保存在 `data/jobs/<任务 ID>/`。首次使用某个 Whisper 模型时会自动下载模型，请预留时间和磁盘空间。
+
+## Linux
+
+Linux can run YanMu with the project shell scripts:
+
+```bash
+chmod +x setup-linux.sh start-linux.sh
+./setup-linux.sh
+./start-linux.sh
+```
+
+Open <http://localhost:8000>. For CPU, NVIDIA GPU, and Docker options, see [docs/linux.md](./docs/linux.md).
