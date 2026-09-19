@@ -1,10 +1,10 @@
 # 言幕 YanMu
 
-一个本地优先的视频字幕生成工具：自动判断视频语种，中文视频统一生成简体中文字幕；外语视频生成“上方外文原文、下方简体中文翻译”的双语字幕。支持下载 SRT，也可将字幕压制到 MP4 视频。
+一个本地优先的视频字幕生成工具：自动判断视频语种，也可手动指定语言纠正误判；中文视频统一生成简体中文字幕，外语视频生成“上方外文原文、下方简体中文翻译”的双语字幕。支持下载 SRT，也可将字幕压制到 MP4 视频。
 
 ## 功能
 
-- Whisper 自动语音识别与语种检测
+- Whisper 语音识别，支持自动检测或手动指定视频语言
 - NVIDIA CUDA 加速语音识别，自动选择 FP16 / CPU INT8
 - NVENC、Quick Sync、AMF、VideoToolbox 加速字幕视频编码
 - 中文视频繁体内容自动转换为简体，输出单语简体中文字幕
@@ -17,6 +17,8 @@
 ## 快速启动
 
 Windows PowerShell：
+
+安装脚本会在项目内准备 Python 与依赖；已有 `.env` 设置不会被重置。
 
 ```powershell
 .\setup.ps1
@@ -61,3 +63,9 @@ chmod +x setup-linux.sh start-linux.sh
 ```
 
 Open <http://localhost:8000>. For CPU, NVIDIA GPU, and Docker options, see [docs/linux.md](./docs/linux.md).
+
+## 任务恢复与字幕校对
+
+支持失败重试、取消和删除任务；新任务保存识别与逐批翻译结果，重试时复用已完成步骤。
+完成后可在网页“校对字幕”中修改文字与时间，导出 SRT/ASS/VTT，并重新压制视频。
+默认新配置仅允许本机访问。升级兼容性、配置项和后续计划见 [改进记录](docs/improvements.md)。

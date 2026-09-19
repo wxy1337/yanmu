@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Literal
 
-JobStatus = Literal["queued", "processing", "completed", "failed"]
+JobStatus = Literal["queued", "processing", "cancelling", "cancelled", "completed", "failed"]
 
 
 def utc_now() -> str:
-    return datetime.now(UTC).isoformat()
+    return datetime.now(timezone.utc).isoformat()
 
 
 @dataclass(slots=True)
@@ -27,6 +28,7 @@ class Job:
     model_size: str
     burn_subtitles: bool
     acceleration: str = "auto"
+    source_language: str = "auto"
     status: JobStatus = "queued"
     stage: str = "等待处理"
     progress: int = 0
@@ -53,6 +55,13 @@ class Job:
                 "subtitle": f"/api/jobs/{self.id}/files/subtitle" if self.subtitle_path else None,
                 "video": f"/api/jobs/{self.id}/files/video" if self.output_video_path else None,
                 "source": f"/api/jobs/{self.id}/files/source",
+                "ass": f"/api/jobs/{self.id}/files/ass" if self.ass_path else None,
+                "preview": (
+                    f"/api/jobs/{self.id}/files/preview"
+                    if self.subtitle_path
+                    and (Path(self.subtitle_path).parent / "preview.vtt").is_file()
+                    else None
+                ),
             }
         return data
 

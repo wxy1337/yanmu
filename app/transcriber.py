@@ -6,6 +6,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from .control import check_cancelled
 from .models import SubtitleSegment
 from .subtitles import is_chinese_language
 from .text import to_simplified
@@ -85,6 +86,28 @@ def is_cuda_runtime_error(error: BaseException) -> bool:
     return any(marker in message for marker in markers)
 
 
+def is_model_download_error(error: BaseException) -> bool:
+    """Recognize incomplete caches and connection failures during model loading."""
+    markers = (
+        "cached snapshot",
+        "incomplete",
+        "localentrynotfound",
+        "huggingface",
+        "model.bin",
+        "ssl",
+        "connectionerror",
+        "connecterror",
+        "timed out",
+    )
+    current: BaseException | None = error
+    while current is not None:
+        description = f"{type(current).__name__} {current}".lower()
+        if any(marker in description for marker in markers):
+            return True
+        current = current.__cause__ or current.__context__
+    return False
+
+
 def resolve_whisper_runtime(
     acceleration: str,
     configured_device: str = "auto",
@@ -124,6 +147,9 @@ def _get_model(model_size: str, device: str, compute_type: str) -> Any:
     key = (model_size, device, compute_type)
     with _model_lock:
         if key not in _model_cache:
+            # Drop unused cached models before allocating another large model.
+            # Active transcriptions retain their own reference until they finish.
+            _model_cache.clear()
             try:
                 from faster_whisper import WhisperModel
             except ImportError as exc:
@@ -134,8 +160,13 @@ def _get_model(model_size: str, device: str, compute_type: str) -> Any:
                 _model_cache[key] = WhisperModel(
                     model_size, device=device, compute_type=compute_type, download_root=None
                 )
-            except (RuntimeError, OSError) as exc:
-                if device == "cuda":
+            except Exception as exc:
+                if is_model_download_error(exc):
+                    raise RuntimeError(
+                        f"{model_size} 模型尚未下载完整或连接已中断。请检查网络和磁盘空间，"
+                        "然后重新提交任务；下载会复用已缓存的文件。"
+                    ) from exc
+                if device == "cuda" and is_cuda_runtime_error(exc):
                     raise RuntimeError(
                         "CUDA 语音识别初始化失败。请确认 NVIDIA 驱动、CUDA 12、cuBLAS 和 "
                         "cuDNN 9 已正确安装，或改用“自动/仅 CPU”。"
@@ -151,18 +182,25 @@ def transcribe(
     compute_type: str,
     duration: float | None,
     on_progress: Callable[[int], None] | None = None,
-) -> tuple[str, float, list[SubtitleSegment]]:
+    source_language: str = "auto",
+) -> tuple[str, float | None, list[SubtitleSegment]]:
+    check_cancelled()
     model = _get_model(model_size, device, compute_type)
+    check_cancelled()
     raw_segments, info = model.transcribe(
         str(audio_path),
         beam_size=5,
         vad_filter=True,
         vad_parameters={"min_silence_duration_ms": 500},
         condition_on_previous_text=True,
+        language=None if source_language == "auto" else source_language,
+        language_detection_segments=3,
+        language_detection_threshold=0.8,
     )
     segments: list[SubtitleSegment] = []
     last_progress = -1
     for item in raw_segments:
+        check_cancelled()
         text = item.text.strip()
         if not text:
             continue
@@ -176,4 +214,5 @@ def transcribe(
                 last_progress = progress
     if not segments:
         raise RuntimeError("没有识别到清晰语音，请确认视频包含可听见的人声。")
-    return info.language, float(info.language_probability), segments
+    probability = float(info.language_probability) if source_language == "auto" else None
+    return info.language, probability, segments
