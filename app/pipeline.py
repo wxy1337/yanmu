@@ -103,6 +103,7 @@ class Pipeline:
                         stage=f"识别人声与语种（{active_hardware}）",
                         progress=min(64, 32 + round(value * 0.32)),
                     ),
+                    source_language=job.source_language,
                 )
 
             try:
@@ -125,7 +126,7 @@ class Pipeline:
                 job_id,
                 language=language,
                 language_name=LANGUAGE_NAMES.get(language, language.upper()),
-                language_probability=round(probability, 4),
+                language_probability=round(probability, 4) if probability is not None else None,
                 is_bilingual=bilingual,
                 stage="翻译简体中文字幕" if bilingual else "整理简体中文字幕",
                 progress=68,

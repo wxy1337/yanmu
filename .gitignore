@@ -2,6 +2,7 @@
 .venv.old/
 .venv-backup-*/
 .venv-py311-backup/
+.venv-broken*/
 .tools/
 .test-artifacts/
 __pycache__/

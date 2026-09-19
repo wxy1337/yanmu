@@ -18,7 +18,9 @@ class Settings(BaseSettings):
     ffmpeg_binary: str = ""
     ffprobe_binary: str = ""
 
-    whisper_model: str = "small"
+    whisper_model: Literal[
+        "tiny", "base", "small", "medium", "large-v3", "distil-large-v3"
+    ] = "small"
     whisper_device: str = "auto"
     whisper_compute_type: str = "auto"
     acceleration_mode: Literal["auto", "cpu", "cuda"] = "auto"

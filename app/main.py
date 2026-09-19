@@ -19,6 +19,9 @@ from .transcriber import cuda_device_count, cuda_runtime_status
 ALLOWED_EXTENSIONS = {".mp4", ".mov", ".mkv", ".avi", ".webm", ".m4v", ".mpeg", ".mpg", ".ts"}
 ALLOWED_MODELS = {"tiny", "base", "small", "medium", "large-v3", "distil-large-v3"}
 ALLOWED_ACCELERATION = {"auto", "cpu", "cuda"}
+ALLOWED_LANGUAGES = {
+    "auto", "zh", "en", "ja", "ko", "fr", "de", "es", "ru", "pt", "it", "vi", "th", "id", "hi", "ar"
+}
 STATIC_DIR = Path(__file__).parent / "static"
 
 settings = get_settings()
@@ -63,6 +66,7 @@ def health() -> dict[str, object]:
         "message": message,
         "translation_configured": bool(settings.translation_api_key)
         or "localhost" in settings.translation_base_url,
+        "default_model": settings.whisper_model,
         "acceleration": {
             "cuda_available": cuda_ready,
             "cuda_device_count": cuda_count,
@@ -88,9 +92,10 @@ def get_job(job_id: str) -> dict[str, object]:
 @app.post("/api/jobs", status_code=202)
 async def create_job(
     file: UploadFile = File(...),
-    model_size: str = Form(default="small"),
+    model_size: str = Form(default=settings.whisper_model),
     burn_subtitles: bool = Form(default=False),
     acceleration: str = Form(default=settings.acceleration_mode),
+    source_language: str = Form(default="auto"),
 ) -> dict[str, object]:
     filename = Path(file.filename or "").name
     suffix = Path(filename).suffix.lower()
@@ -103,6 +108,8 @@ async def create_job(
         raise HTTPException(status_code=422, detail="不支持该识别模型")
     if acceleration not in ALLOWED_ACCELERATION:
         raise HTTPException(status_code=422, detail="不支持该硬件加速模式")
+    if source_language not in ALLOWED_LANGUAGES:
+        raise HTTPException(status_code=422, detail="不支持该视频语言")
 
     job_id = uuid.uuid4().hex
     work_dir = settings.jobs_dir / job_id
@@ -138,6 +145,7 @@ async def create_job(
             model_size=model_size,
             burn_subtitles=burn_subtitles,
             acceleration=acceleration,
+            source_language=source_language,
             progress=8,
             stage="已上传，等待处理",
         )

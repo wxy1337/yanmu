@@ -9,6 +9,7 @@ const elements = {
   clearFile: $("#clearFile"),
   startButton: $("#startButton"),
   modelSize: $("#modelSize"),
+  sourceLanguage: $("#sourceLanguage"),
   acceleration: $("#acceleration"),
   cudaOption: $("#cudaOption"),
   burnSubtitles: $("#burnSubtitles"),
@@ -93,6 +94,10 @@ async function checkHealth() {
   try {
     const response = await fetch("/api/health");
     const health = await response.json();
+    if (!elements.modelSize.dataset.userSelected &&
+        [...elements.modelSize.options].some((option) => option.value === health.default_model)) {
+      elements.modelSize.value = health.default_model;
+    }
     elements.serviceStatus.className = `service-status ${health.ffmpeg_ready ? "ready" : "warning"}`;
     const cudaReady = Boolean(health.acceleration?.cuda_available);
     const encoderCount = health.acceleration?.video_encoders?.length || 0;
@@ -157,6 +162,7 @@ function uploadVideo() {
   const form = new FormData();
   form.append("file", selectedFile);
   form.append("model_size", elements.modelSize.value);
+  form.append("source_language", elements.sourceLanguage.value);
   form.append("acceleration", elements.acceleration.value);
   form.append("burn_subtitles", elements.burnSubtitles.checked ? "true" : "false");
 
@@ -201,7 +207,8 @@ function openResult(job) {
   elements.resultBadge.textContent = `${job.language_name || "已识别"} · ${job.is_bilingual ? "双语" : "单语"}字幕`;
   elements.resultTitle.textContent = job.filename;
   const hardware = job.hardware_used ? ` 使用硬件：${job.hardware_used}。` : "";
-  elements.resultDescription.textContent = `语种识别完成，已生成${type}。${job.downloads.video ? "同时完成了字幕压制。" : "你可以下载 SRT 文件并导入剪辑软件。"}${hardware}`;
+  const languageMethod = job.source_language && job.source_language !== "auto" ? "已按指定语言" : "语种识别完成";
+  elements.resultDescription.textContent = `${languageMethod}，已生成${type}。${job.downloads.video ? "同时完成了字幕压制。" : "你可以下载 SRT 文件并导入剪辑软件。"}${hardware}`;
   elements.subtitleDownload.href = job.downloads.subtitle;
   elements.resultVideo.src = job.downloads.video || job.downloads.source;
   if (job.downloads.video) {
@@ -216,6 +223,7 @@ function openResult(job) {
 
 elements.dropzone.addEventListener("click", () => elements.fileInput.click());
 elements.fileInput.addEventListener("change", () => chooseFile(elements.fileInput.files[0]));
+elements.modelSize.addEventListener("change", () => (elements.modelSize.dataset.userSelected = "true"));
 elements.clearFile.addEventListener("click", clearFile);
 elements.startButton.addEventListener("click", uploadVideo);
 elements.refreshButton.addEventListener("click", () => loadJobs(false));

@@ -99,7 +99,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 0 24px 72px; }
 .icon-button:hover, .refresh-button:hover { background: rgba(23, 38, 35, .06); }
 .icon-button svg, .refresh-button svg { width: 18px; }
 
-.options-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
+.options-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 18px; }
 .field, .toggle-field { min-height: 70px; padding: 13px 15px; border: 1px solid var(--line); background: #fff; }
 .field { display: flex; flex-direction: column; gap: 8px; }
 .field > span, .toggle-field strong { font-size: 11px; font-weight: 700; }

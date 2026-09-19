@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any, Literal
 
 JobStatus = Literal["queued", "processing", "completed", "failed"]
 
 
 def utc_now() -> str:
-    return datetime.now(UTC).isoformat()
+    return datetime.now(timezone.utc).isoformat()
 
 
 @dataclass(slots=True)
@@ -27,6 +27,7 @@ class Job:
     model_size: str
     burn_subtitles: bool
     acceleration: str = "auto"
+    source_language: str = "auto"
     status: JobStatus = "queued"
     stage: str = "等待处理"
     progress: int = 0
