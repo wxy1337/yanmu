@@ -4,7 +4,6 @@ from pathlib import Path
 
 from .models import SubtitleSegment
 
-MAX_SUBTITLE_DISPLAY_SECONDS = 5.0
 MIN_SUBTITLE_DISPLAY_SECONDS = 0.2
 
 
@@ -25,8 +24,21 @@ def format_srt_time(seconds: float) -> str:
 
 def subtitle_display_end(segment: SubtitleSegment) -> float:
     minimum_end = segment.start + MIN_SUBTITLE_DISPLAY_SECONDS
-    maximum_end = segment.start + MAX_SUBTITLE_DISPLAY_SECONDS
-    return min(max(segment.end, minimum_end), maximum_end)
+    return max(segment.end, minimum_end)
+
+
+def render_vtt(segments: list[SubtitleSegment], bilingual: bool) -> str:
+    from html import escape
+
+    blocks = ["WEBVTT"]
+    for segment in segments:
+        start = format_srt_time(segment.start).replace(",", ".")
+        end = format_srt_time(subtitle_display_end(segment)).replace(",", ".")
+        text = escape(segment.text.strip())
+        if bilingual and segment.translation:
+            text += "\n" + escape(segment.translation.strip())
+        blocks.append(f"{start} --> {end}\n{text}")
+    return "\n\n".join(blocks) + "\n"
 
 
 def render_srt(segments: list[SubtitleSegment], bilingual: bool) -> str:
@@ -102,4 +114,5 @@ def write_subtitles(
     ass_path = output_dir / "字幕样式.ass"
     srt_path.write_text(render_srt(segments, bilingual), encoding="utf-8-sig")
     ass_path.write_text(render_ass(segments, bilingual), encoding="utf-8-sig")
+    (output_dir / "preview.vtt").write_text(render_vtt(segments, bilingual), encoding="utf-8")
     return srt_path, ass_path

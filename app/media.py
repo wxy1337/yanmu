@@ -4,8 +4,11 @@ import json
 import os
 import shutil
 import subprocess
+import time
 from functools import lru_cache
 from pathlib import Path
+
+from .control import check_cancelled
 
 
 class MediaError(RuntimeError):
@@ -68,19 +71,38 @@ def available_hardware_encoders() -> list[dict[str, str]]:
 
 
 def _run(args: list[str]) -> subprocess.CompletedProcess[str]:
+    from .config import get_settings
+
+    check_cancelled()
     startupinfo = None
     if os.name == "nt":
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    result = subprocess.run(
+    process = subprocess.Popen(
         args,
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
         encoding="utf-8",
         errors="replace",
         startupinfo=startupinfo,
-        check=False,
     )
+    deadline = time.monotonic() + get_settings().media_timeout_seconds
+    try:
+        while True:
+            check_cancelled()
+            if time.monotonic() >= deadline:
+                raise MediaError("媒体处理超时，可调整 MEDIA_TIMEOUT_SECONDS 后重试。")
+            try:
+                stdout, stderr = process.communicate(timeout=0.5)
+                break
+            except subprocess.TimeoutExpired:
+                continue
+    except BaseException:
+        process.kill()
+        process.communicate()
+        raise
+    result = subprocess.CompletedProcess(args, process.returncode, stdout, stderr)
     if result.returncode:
         detail = result.stderr.strip().splitlines()[-8:]
         raise MediaError("FFmpeg 处理失败：\n" + "\n".join(detail))

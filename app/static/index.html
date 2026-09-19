@@ -140,6 +140,7 @@
             <p><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" /><path d="M12 16v-4m0-4h.01" /></svg>首次运行会自动下载所选语音模型</p>
           </div>
 
+          <p class="privacy-note">语音识别在本机运行；使用外部翻译服务时，字幕文本会发送给所配置的服务。视频文件保存在本机，可在任务列表删除。</p>
           <div class="upload-progress" id="uploadProgress" hidden>
             <div><span id="uploadLabel">正在上传</span><strong id="uploadPercent">0%</strong></div>
             <div class="progress-track"><i id="uploadBar"></i></div>
@@ -185,16 +186,29 @@
             <h3 id="resultTitle"></h3>
             <p id="resultDescription"></p>
             <div class="download-actions">
+              <button class="secondary-button" id="editSubtitles" type="button">校对字幕</button>
+              <button class="secondary-button" id="renderVideo" type="button">重新压制视频</button>
               <a class="primary-button" id="subtitleDownload" href="#" download>
                 下载 SRT 字幕
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" /></svg>
               </a>
+              <a class="secondary-button" id="assDownload" href="#" download>下载 ASS 字幕</a>
+              <a class="secondary-button" id="vttDownload" href="#" download>下载 VTT 字幕</a>
               <a class="secondary-button" id="videoDownload" href="#" download hidden>下载带字幕视频</a>
             </div>
           </div>
         </div>
       </section>
 
+      <section class="subtitle-editor" id="subtitleEditor" hidden>
+        <div class="section-heading">
+          <div><h2>校对字幕</h2><p>时间单位为秒。保存后更新字幕和预览，需要成片时再点击“重新压制视频”。</p></div>
+          <button id="closeEditor" class="secondary-button" type="button">关闭编辑</button>
+        </div>
+        <p id="editorStatus" role="status"></p>
+        <div id="subtitleRows"></div>
+        <button id="saveSubtitles" class="primary-button" type="button">保存字幕</button>
+      </section>
       <section class="feature-strip">
         <div><span>01</span><strong>自动或手动指定语种</strong><small>识别有偏差时可手动纠正</small></div>
         <div><span>02</span><strong>GPU 自动加速</strong><small>CUDA 识别与硬件编码</small></div>

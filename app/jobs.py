@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import threading
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,7 @@ from .models import Job, utc_now
 class JobStore:
     def __init__(self, jobs_dir: Path):
         self.jobs_dir = jobs_dir
+        self.jobs_dir.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
         self._jobs: dict[str, Job] = {}
         self._load_existing()
@@ -20,10 +22,11 @@ class JobStore:
             try:
                 data = json.loads(metadata.read_text(encoding="utf-8"))
                 job = Job.from_dict(data)
-                if job.status in {"queued", "processing"}:
+                if job.status in {"queued", "processing", "cancelling"}:
                     job.status = "failed"
                     job.stage = "服务重启，任务已中断"
-                    job.error = "任务处理过程中服务被重启，请重新上传视频。"
+                    job.error = "服务已重启，可点击重试继续处理，已保存的识别和翻译结果将被复用。"
+                    self._persist(job)
                 self._jobs[job.id] = job
             except (OSError, ValueError, TypeError):
                 continue
@@ -45,6 +48,13 @@ class JobStore:
     def update(self, job_id: str, **changes: Any) -> Job:
         with self._lock:
             job = self._jobs[job_id]
+            if job.status == "cancelling" and changes.get("status") not in {
+                "cancelled",
+                "failed",
+                "completed",
+            }:
+                changes.pop("status", None)
+                changes.pop("stage", None)
             for key, value in changes.items():
                 if hasattr(job, key):
                     setattr(job, key, value)
@@ -61,3 +71,15 @@ class JobStore:
         )
         temporary.replace(metadata)
 
+    def delete(self, job_id: str) -> None:
+        with self._lock:
+            job = self._jobs[job_id]
+            if job.status not in {"completed", "failed", "cancelled"}:
+                raise ValueError("请先取消任务，等待停止后再删除。")
+            root = self.jobs_dir.resolve()
+            directory = (root / job_id).resolve()
+            if directory.parent != root or directory == root:
+                raise ValueError("任务目录无效。")
+            if directory.exists():
+                shutil.rmtree(directory)
+            del self._jobs[job_id]

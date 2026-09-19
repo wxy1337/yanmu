@@ -63,3 +63,9 @@ chmod +x setup-linux.sh start-linux.sh
 ```
 
 Open <http://localhost:8000>. For CPU, NVIDIA GPU, and Docker options, see [docs/linux.md](./docs/linux.md).
+
+## 任务恢复与字幕校对
+
+支持失败重试、取消和删除任务；新任务保存识别与逐批翻译结果，重试时复用已完成步骤。
+完成后可在网页“校对字幕”中修改文字与时间，导出 SRT/ASS/VTT，并重新压制视频。
+默认新配置仅允许本机访问。升级兼容性、配置项和后续计划见 [改进记录](docs/improvements.md)。

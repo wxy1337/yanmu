@@ -6,6 +6,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from .control import check_cancelled
 from .models import SubtitleSegment
 from .subtitles import is_chinese_language
 from .text import to_simplified
@@ -146,6 +147,9 @@ def _get_model(model_size: str, device: str, compute_type: str) -> Any:
     key = (model_size, device, compute_type)
     with _model_lock:
         if key not in _model_cache:
+            # Drop unused cached models before allocating another large model.
+            # Active transcriptions retain their own reference until they finish.
+            _model_cache.clear()
             try:
                 from faster_whisper import WhisperModel
             except ImportError as exc:
@@ -180,7 +184,9 @@ def transcribe(
     on_progress: Callable[[int], None] | None = None,
     source_language: str = "auto",
 ) -> tuple[str, float | None, list[SubtitleSegment]]:
+    check_cancelled()
     model = _get_model(model_size, device, compute_type)
+    check_cancelled()
     raw_segments, info = model.transcribe(
         str(audio_path),
         beam_size=5,
@@ -194,6 +200,7 @@ def transcribe(
     segments: list[SubtitleSegment] = []
     last_progress = -1
     for item in raw_segments:
+        check_cancelled()
         text = item.text.strip()
         if not text:
             continue
